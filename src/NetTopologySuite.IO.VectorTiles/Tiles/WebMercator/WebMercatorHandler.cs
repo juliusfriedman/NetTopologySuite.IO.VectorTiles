@@ -20,8 +20,8 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles.WebMercator
         {
             var x = m.X / TileMath.OriginShift * 180;
             var y = m.Y / TileMath.OriginShift * 180;
-            y = 180 / Math.PI * (2 * Math.Atan(Math.Exp(y * Math.PI / 180)) - Math.PI / 2);
-            return new System.Numerics.Vector2((float)x, (float)y);
+            y = 180 / MathF.PI * (2 * MathF.Atan(MathF.Exp(y * MathF.PI / 180)) - MathF.PI / 2);
+            return new (x, y);
         }
         
         //Converts EPSG:900913 to pyramid pixel coordinates in given zoom level

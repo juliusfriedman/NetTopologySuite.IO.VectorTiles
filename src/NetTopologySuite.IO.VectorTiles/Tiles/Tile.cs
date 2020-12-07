@@ -18,6 +18,8 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles
         public Tile(ulong id)
         {
             var vec = Tile.CalculateTile(_id = id);
+
+
             (this.X, this.Y, this.Zoom) = ((int)vec.X, (int)vec.Y, (int)vec.Z);
 
             this.CalculateBounds();
@@ -35,64 +37,110 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles
 
         private void CalculateBounds()
         {
-            var zoomSquare = Math.Pow(2.0, this.Zoom);
-            var n = Math.PI - (TileMath.PI2 * this.Y / zoomSquare);
-            this.Left = (double)((this.X / zoomSquare * 360.0) - 180.0);
-            this.Top = (double)(TileMath.OneRadian * Math.Atan(Math.Sinh(n)));
+            var zoomSquare = MathF.Pow(2.0f, this.Zoom);
+            var n = MathF.PI - (TileMath.PI2 * this.Y / zoomSquare);
+            var Left = (this.X / zoomSquare * 360.0f) - 180.0f;
+            var Top = TileMath.OneRadian * MathF.Atan(MathF.Sinh(n));
 
-            n = Math.PI - (TileMath.PI2 * (this.Y + 1) / zoomSquare);
-            this.Right = (double)(((this.X + 1) / zoomSquare * 360.0) - 180.0);
-            this.Bottom = (double)(TileMath.OneRadian * Math.Atan(Math.Sinh(n)));
+            n = MathF.PI - (TileMath.PI2 * (this.Y + 1) / zoomSquare);
+            var Right = ((this.X + 1) / zoomSquare * 360.0f) - 180.0f;
+            var Bottom = TileMath.OneRadian * MathF.Atan(MathF.Sinh(n));
 
-            this.CenterLat = (double)((this.Top + this.Bottom) / 2.0);
-            this.CenterLon = (double)((this.Left + this.Right) / 2.0);
+            var CenterLat = (Top + Bottom) / 2.0f;
+            var CenterLon = (Left + Right) / 2.0f;
+
+            position = new(X, Y, CenterLon, CenterLat);
+            location = new(Zoom, Top, Left, Bottom);
+            extra = new(Right, 0, 0, 0);
         }
+
+        System.Numerics.Vector4 position;
+
+        System.Numerics.Vector4 location;
+
+        System.Numerics.Vector4 extra;
 
         /// <summary>
         /// The X position of the tile.
         /// </summary>
-        public int X { get; private set; }
+        public int X 
+        { 
+            get => (int)position.X;
+            private set => position = new(value, position.Y, position.Z, position.W); 
+        }
 
         /// <summary>
         /// The Y position of the tile.
         /// </summary>
-        public int Y { get; private set; }
-
-        /// <summary>
-        /// The zoom level for this tile.
-        /// </summary>
-        public int Zoom { get; private set; }
-
-        /// <summary>
-        /// Gets the top.
-        /// </summary>
-        public double Top { get; private set; }
-
-        /// <summary>
-        /// Get the bottom.
-        /// </summary>
-        public double Bottom { get; private set; }
-
-        /// <summary>
-        /// Get the left.
-        /// </summary>
-        public double Left { get; private set; }
-
-        /// <summary>
-        /// Gets the right.
-        /// </summary>
-        public double Right { get; private set; }
-
-        /// <summary>
-        /// Gets the center lat.
-        /// </summary>
-        public double CenterLat { get; private set; }
+        public int Y
+        {
+            get => (int)position.Y;
+            private set => position = new(position.X, value, position.Z, position.W);
+        }
 
         /// <summary>
         /// Gets the center lon.
         /// </summary>
-        public double CenterLon { get; private set; }
+        public float CenterLon
+        {
+            get => position.Z;
+            private set => position = new(position.X, position.Y, value, position.W);
+        }
 
+        /// <summary>
+        /// Gets the center lat.
+        /// </summary>
+        public float CenterLat
+        {
+            get => position.W;
+            private set => position = new(position.X, position.Y, position.Z, value);
+        }
+
+        /// <summary>
+        /// The zoom level for this tile.
+        /// </summary>
+        public int Zoom
+        {
+            get => (int)location.X;
+            private set => location = new(value, location.Y, location.Z, location.W);
+        }
+
+        /// <summary>
+        /// Gets the top.
+        /// </summary>
+        public float Top
+        {
+            get => location.Y;
+            private set => location = new(location.X, value, location.Z, location.W);
+        }
+
+        /// <summary>
+        /// Get the left.
+        /// </summary>
+        public float Left
+        {
+            get => location.Z;
+            private set => location = new(location.X, location.Y, value, location.W);
+        }
+
+        /// <summary>
+        /// Get the bottom.
+        /// </summary>
+        public float Bottom
+        {
+            get => location.W;
+            private set => location = new(location.X, location.Y, location.Z, value);
+        }
+
+        /// <summary>
+        /// Gets the right.
+        /// </summary>
+        public float Right
+        {
+            get => extra.X;
+            private set => extra = new(value, extra.Y, extra.Z, extra.W);
+        }
+       
         /// <summary>
         /// Gets the parent tile.
         /// </summary>
@@ -102,7 +150,7 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles
         /// Returns a hashcode for this tile position.
         /// </summary>
         /// <returns></returns>
-        public override int GetHashCode() => HashCode.Combine(X.GetHashCode(), Y.GetHashCode(), Zoom.GetHashCode());
+        public override int GetHashCode() => HashCode.Combine(position.GetHashCode(), location.GetHashCode(), extra.GetHashCode());
 
         /// <summary>
         /// Returns true if the given object represents the same tile.
@@ -328,7 +376,7 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles
         {
             const int factor = 2;
             var zoom = this.Zoom + 1;
-            int x = 0, y = 0;
+            float x = 0, y = 0;
             if (lat >= this.CenterLat && lon < this.CenterLon)
             {
                 x = this.X * factor;
@@ -350,7 +398,7 @@ namespace NetTopologySuite.IO.VectorTiles.Tiles
                 y = this.Y * factor + factor - 1;
             }
 
-            return Tile.CalculateTileId(zoom, x, y);
+            return Tile.CalculateTileId((int)zoom, (int)x, (int)y);
         }
 
         /// <summary>
